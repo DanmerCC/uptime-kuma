@@ -1,4 +1,4 @@
-# Scoped monitor API (fork feature)
+# Scoped management APIs (fork features)
 
 This is a custom API in the DanmerCC fork, not an official Uptime Kuma API; stock Uptime Kuma does not provide these Bearer-token routes.
 
@@ -7,6 +7,7 @@ This is a custom API in the DanmerCC fork, not an official Uptime Kuma API; stoc
 - GET /api/v1/monitors — requires monitors:read; returns only monitors owned by the token's Uptime Kuma user.
 - POST /api/v1/monitors — requires monitors:write; creates one HTTP monitor with optional tags.
 - PATCH /api/v1/monitors/:id — requires monitors:write; updates the URL and/or replaces tags on an owned HTTP monitor. It restarts the monitor only if its URL changes and it is active. Delete, bulk, and other monitor types are not exposed.
+- PATCH /api/v1/status-pages/:slug/groups — requires status-pages:write; adds owned monitors to named public groups on an existing status page.
 
 Send Authorization: Bearer <token>. Existing API keys have an empty scope list and cannot use these routes unless a separately provisioned token has a required scope.
 
@@ -14,11 +15,13 @@ Create body accepts only name, url, optional interval (30–86400 seconds, defau
 
 Update body accepts `url`, `tags`, or both. Tags replace the monitor's full tag set; use an empty array to remove all tags. Tag names are limited to 64 Unicode letters/numbers plus spaces, dots, underscores, and hyphens. Responses and monitor listings include an allowlisted tag name/value/color representation. IDs are scoped to the token owner; missing or other users' monitors return 404. URL changes are rolled back if the active monitor cannot be restarted. Tag names are global in Uptime Kuma, so issuing a monitors:write token also permits creating global tag names through an owned monitor.
 
-Both endpoints reject unknown fields, URL credentials, secret query parameters, fragments, and non-HTTP(S) URLs. Monitor URLs in responses are allowlisted and redact credentials and secret query parameters. A write-scoped token can cause Kuma to make outbound HTTP(S) requests and create global tag names; issue it only to trusted automation after reviewing targets.
+Status-page group assignment body accepts only `groups`, with 1–10 named groups and up to 100 total monitor IDs, for example `{ "groups": [{ "name": "APIs", "monitorIDs": [10, 11] }] }`. Names match existing public groups case- and accent-insensitively; missing groups are created. Only listed monitors are moved between public groups on that status page; all unlisted groups, memberships, and status-page settings remain unchanged. IDs are scoped to the token owner, duplicate IDs/names and unknown fields are rejected, and the new public memberships keep monitor URLs hidden (`send_url=false`). The operation is idempotent. This endpoint does not create or publish status pages, change settings, or remove monitors from the page.
+
+The monitor endpoints reject unknown fields, URL credentials, secret query parameters, fragments, and non-HTTP(S) URLs. Monitor URLs in responses are allowlisted and redact credentials and secret query parameters. A monitors:write token can cause Kuma to make outbound HTTP(S) requests and create global tag names; issue it only to trusted automation after reviewing targets.
 
 ## Issue/revoke a token
 
-The explicitly invoked interactive issuer stores only a bcrypt hash and displays the random token once. It requires the exact existing SQLite data directory; it refuses implicit paths and missing databases. Run it only in an authorized local/container administration session after the fork has been started once and its schema migration has completed:
+The explicitly invoked interactive issuer stores only a bcrypt hash and displays the random token once. It supports `monitors:read`, `monitors:write`, and `status-pages:write`. It requires the exact existing SQLite data directory; it refuses implicit paths and missing databases. Run it only in an authorized local/container administration session after the fork has been started once and its schema migration has completed:
 
     node extra/create-api-token.js --data-dir /app/data
 

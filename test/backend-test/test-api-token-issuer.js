@@ -19,7 +19,14 @@ const { Settings } = require("../../server/settings");
  */
 function runIssuer(dataDir) {
     return new Promise((resolve, reject) => {
-        const answers = ["yes", "token-issuer-test", "monitors:read,monitors:write", "CLI integration token", "1", "yes"];
+        const answers = [
+            "yes",
+            "token-issuer-test",
+            "monitors:read,monitors:write,status-pages:write",
+            "CLI integration token",
+            "1",
+            "yes",
+        ];
         const prompts = ["Type yes: ", "username: ", "comma-separated): ", "Token name: ", "default 90): "];
         const child = spawn(process.execPath, ["extra/create-api-token.js", "--data-dir", dataDir], {
             cwd: path.resolve(__dirname, "../.."),
@@ -97,7 +104,7 @@ test("interactive token issuer stores only a scoped hash in an explicit temp dat
         assert.ok(key);
         assert.notEqual(key.key, clearToken);
         assert.equal(passwordHash.verify(clearToken.slice(clearToken.indexOf("_") + 1), key.key), true);
-        assert.deepEqual(JSON.parse(key.scopes_json), ["monitors:read", "monitors:write"]);
+        assert.deepEqual(JSON.parse(key.scopes_json), ["monitors:read", "monitors:write", "status-pages:write"]);
     } finally {
         if (connected) {
             await Database.close();

@@ -80,11 +80,12 @@ async function main() {
             throw new Error("No active user matches that username.");
         }
 
-        const scopeInput = await ask("Scopes (monitors:read, monitors:write; comma-separated): ");
+        const supportedScopes = ["monitors:read", "monitors:write", "status-pages:write"];
+        const scopeInput = await ask("Scopes (" + supportedScopes.join(", ") + "; comma-separated): ");
         const scopes = [...new Set(scopeInput.split(",").map((scope) => scope.trim()).filter(Boolean))];
-        const validScopes = new Set(["monitors:read", "monitors:write"]);
+        const validScopes = new Set(supportedScopes);
         if (scopes.length === 0 || scopes.some((scope) => !validScopes.has(scope))) {
-            throw new Error("Choose at least one supported scope: monitors:read or monitors:write.");
+            throw new Error("Choose at least one supported scope: " + supportedScopes.join(", ") + ".");
         }
 
         const name = (await ask("Token name: ")) || "Monitor automation";

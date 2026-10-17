@@ -74,7 +74,7 @@ class APIKey extends BeanModel {
      * @returns {Promise<bean>} API key
      */
     static async save(key, userID, scopes = []) {
-        const allowedScopes = new Set(["monitors:read", "monitors:write"]);
+        const allowedScopes = new Set(["monitors:read", "monitors:write", "status-pages:write"]);
         if (!Array.isArray(scopes) || scopes.some((scope) => !allowedScopes.has(scope))) {
             throw new Error("Invalid API key scope");
         }
