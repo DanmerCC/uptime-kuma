@@ -19,6 +19,7 @@ const { UptimeCalculator } = require("../uptime-calculator");
 const { Settings } = require("../settings");
 const { bearerAuth } = require("../bearer-auth");
 const { createMonitorApiRouter } = require("./monitor-api-router");
+const { createStatusPageApiRouter } = require("./status-page-api-router");
 
 let router = express.Router();
 
@@ -27,6 +28,7 @@ const server = UptimeKumaServer.getInstance();
 let io = server.io;
 
 router.use("/api/v1/monitors", createMonitorApiRouter({ R, server, bearerAuth }));
+router.use("/api/v1/status-pages", createStatusPageApiRouter({ R, bearerAuth }));
 
 router.get("/api/entry-page", async (request, response) => {
     allowDevAllOrigin(response);
