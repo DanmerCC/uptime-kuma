@@ -17,12 +17,16 @@ const { makeBadge } = require("badge-maker");
 const { Prometheus } = require("../prometheus");
 const { UptimeCalculator } = require("../uptime-calculator");
 const { Settings } = require("../settings");
+const { bearerAuth } = require("../bearer-auth");
+const { createMonitorApiRouter } = require("./monitor-api-router");
 
 let router = express.Router();
 
 let cache = apicache.middleware;
 const server = UptimeKumaServer.getInstance();
 let io = server.io;
+
+router.use("/api/v1/monitors", createMonitorApiRouter({ R, server, bearerAuth }));
 
 router.get("/api/entry-page", async (request, response) => {
     allowDevAllOrigin(response);
