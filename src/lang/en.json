@@ -1460,6 +1460,7 @@
     "Fluxer Webhook URL": "Fluxer Webhook URL",
     "wayToGetFluxerURL": "You can get this by going to the target channel's settings > Webhooks > Create Webhook > Copy Webhook URL.",
     "Ip Family": "IP Family",
+    "Last resolved IP": "Last resolved IP",
     "ipFamilyDescriptionAutoSelect": "Uses the {happyEyeballs} for determining the IP family.",
     "Happy Eyeballs algorithm": "Happy Eyeballs algorithm",
     "Add Another Tag": "Add Another Tag",
