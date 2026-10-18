@@ -37,6 +37,13 @@
                             </span>
                             <div class="flex-fill text-truncate" style="min-width: 0">
                                 <div class="text-truncate">{{ monitor.name }}</div>
+                                <div
+                                    v-if="monitor.lastResolvedIp"
+                                    class="small text-body-secondary text-truncate"
+                                    :title="`${$t('Last resolved IP')}: ${monitor.lastResolvedIp}`"
+                                >
+                                    {{ $t("Last resolved IP") }}: {{ monitor.lastResolvedIp }}
+                                </div>
                                 <div v-if="monitor.tags.length > 0" class="tags gap-1">
                                     <Tag
                                         v-for="tag in monitor.tags"

@@ -208,6 +208,10 @@ export default {
 
                 this.heartbeatList[data.monitorID].push(data);
 
+                if (data.resolvedIp && this.monitorList[data.monitorID]) {
+                    this.monitorList[data.monitorID].lastResolvedIp = data.resolvedIp;
+                }
+
                 if (this.heartbeatList[data.monitorID].length >= 150) {
                     this.heartbeatList[data.monitorID].shift();
                 }

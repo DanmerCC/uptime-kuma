@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 const { R } = require("redbean-node");
 const { log, isDev } = require("../src/util");
 const Database = require("./database");
+const { getLastResolvedIpMap } = require("./extensions/resolved-ip");
 const util = require("util");
 const { Settings } = require("./settings");
 const dayjs = require("dayjs");
@@ -275,8 +276,13 @@ class UptimeKumaServer {
         }));
         const preloadData = await Monitor.preparePreloadData(monitorData);
 
+        const lastResolvedIpByMonitor = await getLastResolvedIpMap(R, monitorList.map((monitor) => monitor.id));
         const result = {};
-        monitorList.forEach((monitor) => (result[monitor.id] = monitor.toJSON(preloadData)));
+        monitorList.forEach((monitor) => {
+            const monitorJSON = monitor.toJSON(preloadData);
+            monitorJSON.lastResolvedIp = lastResolvedIpByMonitor.get(monitor.id) || null;
+            result[monitor.id] = monitorJSON;
+        });
         return result;
     }
 

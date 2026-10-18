@@ -1154,6 +1154,7 @@
     "pingIntervalAdjustedInfo": "Intervalo ajustado en función del recuento de paquetes, el tiempo de espera global y el tiempo de espera por ping",
     "Clear Form": "Limpiar formulario",
     "Ip Family": "Familia de IP",
+    "Last resolved IP": "Última IP resuelta",
     "ipFamilyDescriptionAutoSelect": "Utiliza {happyEyeballs} para determinar la familia de IP.",
     "Happy Eyeballs algorithm": "Algoritmo Happy Eyeballs",
     "Path": "Ruta",
