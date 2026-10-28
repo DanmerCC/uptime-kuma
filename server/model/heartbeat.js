@@ -39,6 +39,7 @@ class Heartbeat extends BeanModel {
             important: this._important,
             duration: this._duration,
             retries: this._retries,
+            resolvedIp: this._resolvedIp || null,
             response: this._response,
         };
     }
@@ -58,6 +59,7 @@ class Heartbeat extends BeanModel {
             important: this._important,
             duration: this._duration,
             retries: this._retries,
+            resolvedIp: this._resolvedIp || null,
             response: opts?.decodeResponse ? await Heartbeat.decodeResponseValue(this._response) : undefined,
         };
     }

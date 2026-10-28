@@ -62,6 +62,7 @@ const zlib = require("node:zlib");
 const { promisify } = require("node:util");
 const brotliCompress = promisify(zlib.brotliCompress);
 const DomainExpiry = require("./domain_expiry");
+const { captureResolvedIp } = require("../extensions/resolved-ip");
 
 const rootCertificates = rootCertificatesFingerprints();
 
@@ -461,6 +462,7 @@ class Monitor extends BeanModel {
             bean.time = R.isoDateTimeMillis(dayjs.utc());
             bean.status = DOWN;
             bean.downCount = previousBeat?.downCount || 0;
+            let isUsingActiveProxy = false;
 
             if (this.isUpsideDown()) {
                 bean.status = flipStatus(bean.status);
@@ -596,6 +598,7 @@ class Monitor extends BeanModel {
                         const proxy = await R.load("proxy", this.proxy_id);
 
                         if (proxy && proxy.active) {
+                            isUsingActiveProxy = true;
                             const { httpAgent, httpsAgent } = Proxy.createAgents(proxy, {
                                 httpsAgentOptions: httpsAgentOptions,
                                 httpAgentOptions: httpAgentOptions,
@@ -653,6 +656,7 @@ class Monitor extends BeanModel {
 
                     // Make Request
                     let res = await this.makeAxiosRequest(options);
+                    captureResolvedIp(bean, res, isUsingActiveProxy);
 
                     bean.msg = `${res.status} - ${res.statusText}`;
                     bean.ping = dayjs().valueOf() - startTime;
@@ -918,6 +922,10 @@ class Monitor extends BeanModel {
 
                 retries = 0;
             } catch (error) {
+                if (this.type === "http" || this.type === "keyword" || this.type === "json-query") {
+                    captureResolvedIp(bean, error, isUsingActiveProxy);
+                }
+
                 if (error?.name === "CanceledError") {
                     bean.msg = `timeout by AbortSignal (${this.timeout}s)`;
                 } else {

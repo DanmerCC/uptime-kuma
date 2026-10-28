@@ -155,6 +155,29 @@ test("monitor API requires a valid Bearer token and the matching scope", async (
     assert.equal((await request("PATCH", readToken, { url: "https://example.org" }, "/1")).response.status, 403);
 });
 
+test("monitor API serializes heartbeat statuses without exposing heartbeat messages", () => {
+    const { toPublicMonitor } = require("../../server/routers/monitor-api-utils");
+    const monitor = {
+        id: 10,
+        name: "Heartbeat test",
+        url: "https://example.org/",
+        interval: 60,
+        active: true,
+    };
+
+    for (const [status, expected] of [[0, "down"], [1, "up"], [2, "pending"], [3, "maintenance"], [99, "unknown"]]) {
+        const publicMonitor = toPublicMonitor(monitor, [], {
+            status,
+            time: "2026-10-28 10:30:00.000",
+            ping: 0,
+            msg: "private monitor response",
+        });
+        assert.equal(publicMonitor.lastHeartbeat.status, expected);
+        assert.equal(publicMonitor.lastHeartbeat.ping, 0);
+        assert.equal(Object.hasOwn(publicMonitor.lastHeartbeat, "msg"), false);
+    }
+});
+
 test("monitor API creates only allowlisted HTTP monitors and restricts listing to the token owner", async () => {
     const createResult = await request("POST", writeToken, {
         name: "Asset health",
@@ -172,10 +195,48 @@ test("monitor API creates only allowlisted HTTP monitors and restricts listing t
     assert.equal(Object.hasOwn(createResult.body.monitor, "accepted_statuscodes_json"), false);
     assert.deepEqual(createResult.body.monitor.tags.map((tag) => tag.name), ["CAEN", "Producción"]);
 
-    const listResult = await request("GET", readToken);
+    const Monitor = require("../../server/model/monitor");
+    const originalGetPreviousHeartbeat = Monitor.getPreviousHeartbeat;
+    const queriedMonitorIDs = [];
+    Monitor.getPreviousHeartbeat = async (monitorID) => {
+        queriedMonitorIDs.push(Number(monitorID));
+        return {
+            status: 1,
+            time: "2026-10-28 10:30:00.000",
+            ping: 42,
+            msg: "private endpoint response must not be exposed",
+        };
+    };
+
+    let listResult;
+    try {
+        listResult = await request("GET", readToken);
+    } finally {
+        Monitor.getPreviousHeartbeat = originalGetPreviousHeartbeat;
+    }
     assert.equal(listResult.response.status, 200);
     assert.deepEqual(listResult.body.monitors.map((monitor) => monitor.name), ["Asset health"]);
     assert.deepEqual(listResult.body.monitors[0].tags.map((tag) => tag.name), ["CAEN", "Producción"]);
+    assert.deepEqual(listResult.body.monitors[0].lastHeartbeat, {
+        status: "up",
+        time: "2026-10-28 10:30:00.000",
+        ping: 42,
+    });
+    assert.equal(Object.hasOwn(listResult.body.monitors[0].lastHeartbeat, "msg"), false);
+    assert.deepEqual(queriedMonitorIDs, [Number(createResult.body.monitor.id)], "only owned monitors are queried for heartbeat data");
+
+    Monitor.getPreviousHeartbeat = async () => null;
+    let withoutHeartbeat;
+    try {
+        withoutHeartbeat = await request("GET", readToken);
+    } finally {
+        Monitor.getPreviousHeartbeat = originalGetPreviousHeartbeat;
+    }
+    assert.deepEqual(withoutHeartbeat.body.monitors[0].lastHeartbeat, {
+        status: "unknown",
+        time: null,
+        ping: null,
+    });
 
     const invalid = await request("POST", writeToken, {
         name: "Must not persist",

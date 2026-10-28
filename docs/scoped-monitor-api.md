@@ -4,7 +4,7 @@ This is a custom API in the DanmerCC fork, not an official Uptime Kuma API; stoc
 
 ## Routes
 
-- GET /api/v1/monitors — requires monitors:read; returns only monitors owned by the token's Uptime Kuma user.
+- GET /api/v1/monitors — requires monitors:read; returns only monitors owned by the token's Uptime Kuma user, including the latest heartbeat summary (`status`, `time`, `ping`) when available. Heartbeat messages and response bodies are not exposed.
 - POST /api/v1/monitors — requires monitors:write; creates one HTTP monitor with optional tags.
 - PATCH /api/v1/monitors/:id — requires monitors:write; updates the URL and/or replaces tags on an owned HTTP monitor. It restarts the monitor only if its URL changes and it is active. Delete, bulk, and other monitor types are not exposed.
 - PATCH /api/v1/status-pages/:slug/groups — requires status-pages:write; adds owned monitors to named public groups on an existing status page.
@@ -13,7 +13,7 @@ Send Authorization: Bearer <token>. Existing API keys have an empty scope list a
 
 Create body accepts only name, url, optional interval (30–86400 seconds, default 60), description, acceptedStatusCodes, active, ignoreTls, and tags. Tags are an optional array of up to 10 names. The API creates missing global Uptime Kuma tags with safe default colors and reuses existing tags case- and accent-insensitively.
 
-Update body accepts `url`, `tags`, or both. Tags replace the monitor's full tag set; use an empty array to remove all tags. Tag names are limited to 64 Unicode letters/numbers plus spaces, dots, underscores, and hyphens. Responses and monitor listings include an allowlisted tag name/value/color representation. IDs are scoped to the token owner; missing or other users' monitors return 404. URL changes are rolled back if the active monitor cannot be restarted. Tag names are global in Uptime Kuma, so issuing a monitors:write token also permits creating global tag names through an owned monitor.
+Update body accepts `url`, `tags`, or both. Tags replace the monitor's full tag set; use an empty array to remove all tags. Tag names are limited to 64 Unicode letters/numbers plus spaces, dots, underscores, and hyphens. Responses and monitor listings include an allowlisted tag name/value/color representation. The read-only heartbeat summary maps Kuma's numeric statuses to `up`, `down`, `pending`, `maintenance`, or `unknown`; if no heartbeat exists it returns `unknown` with null time and ping. Heartbeat `msg` is deliberately excluded because it can contain private endpoint details. IDs are scoped to the token owner; missing or other users' monitors return 404. URL changes are rolled back if the active monitor cannot be restarted. Tag names are global in Uptime Kuma, so issuing a monitors:write token also permits creating global tag names through an owned monitor.
 
 Status-page group assignment body accepts only `groups`, with 1–10 named groups and up to 100 total monitor IDs, for example `{ "groups": [{ "name": "APIs", "monitorIDs": [10, 11] }] }`. Names match existing public groups case- and accent-insensitively; missing groups are created. Only listed monitors are moved between public groups on that status page; all unlisted groups, memberships, and status-page settings remain unchanged. IDs are scoped to the token owner, duplicate IDs/names and unknown fields are rejected, and the new public memberships keep monitor URLs hidden (`send_url=false`). The operation is idempotent. This endpoint does not create or publish status pages, change settings, or remove monitors from the page.
 
