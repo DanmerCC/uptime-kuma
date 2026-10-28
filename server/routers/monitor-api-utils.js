@@ -1,5 +1,11 @@
 const SENSITIVE_QUERY_PARAM =
     /(?:pass(?:word|wd)?|pwd|token|secret|(?:^|[_-])key(?:$|[_-])|api[_-]?key|authorization|auth|signature|^sig$|access[_-]?key|client[_-]?secret|credential|session|jwt|bearer)/i;
+const HEARTBEAT_STATUS = new Map([
+    [0, "down"],
+    [1, "up"],
+    [2, "pending"],
+    [3, "maintenance"],
+]);
 const ALLOWED_MONITOR_PROPERTIES = new Set([
     "name",
     "url",
@@ -215,10 +221,11 @@ function redactMonitorURL(value) {
  * Build a safe public representation of a monitor row.
  * @param {object} monitor Monitor bean or row
  * @param {object[]} tags Monitor tags
+ * @param {object|null|undefined} lastHeartbeat Latest heartbeat bean, when requested
  * @returns {object} Allowlisted monitor fields
  */
-function toPublicMonitor(monitor, tags = []) {
-    return {
+function toPublicMonitor(monitor, tags = [], lastHeartbeat) {
+    const publicMonitor = {
         id: Number(monitor.id),
         name: monitor.name,
         description: monitor.description || "",
@@ -231,6 +238,31 @@ function toPublicMonitor(monitor, tags = []) {
             value: tag.value || "",
             color: /^#[\da-f]{6}$/i.test(tag.color || "") ? tag.color : null,
         })),
+    };
+
+    if (lastHeartbeat !== undefined) {
+        publicMonitor.lastHeartbeat = toPublicHeartbeat(lastHeartbeat);
+    }
+
+    return publicMonitor;
+}
+
+/**
+ * Expose only the current state and timing data; heartbeat messages can contain private endpoint details.
+ * @param {object|null} heartbeat Latest heartbeat bean
+ * @returns {{status: string, time: string|null, ping: number|null}} Safe heartbeat summary
+ */
+function toPublicHeartbeat(heartbeat) {
+    if (!heartbeat) {
+        return { status: "unknown", time: null, ping: null };
+    }
+
+    const status = heartbeat.status === null || heartbeat.status === undefined ? NaN : Number(heartbeat.status);
+    const ping = heartbeat.ping === null || heartbeat.ping === undefined ? NaN : Number(heartbeat.ping);
+    return {
+        status: HEARTBEAT_STATUS.get(status) || "unknown",
+        time: typeof heartbeat.time === "string" ? heartbeat.time : null,
+        ping: Number.isFinite(ping) && ping >= 0 ? ping : null,
     };
 }
 

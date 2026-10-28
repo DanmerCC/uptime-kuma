@@ -1,5 +1,6 @@
 const express = require("express");
 const { log } = require("../../src/util");
+const Monitor = require("../model/monitor");
 const {
     validateMonitorPayload,
     validateMonitorUpdatePayload,
@@ -92,7 +93,13 @@ function createMonitorApiRouter({ R, server, bearerAuth }) {
         try {
             const monitors = await R.find("monitor", " user_id = ? ORDER BY id ", [request.apiUserID]);
             const publicMonitors = await Promise.all(
-                monitors.map(async (monitor) => toPublicMonitor(monitor, await monitor.getTags()))
+                monitors.map(async (monitor) =>
+                    toPublicMonitor(
+                        monitor,
+                        await monitor.getTags(),
+                        await Monitor.getPreviousHeartbeat(monitor.id)
+                    )
+                )
             );
             response.json({ monitors: publicMonitors });
         } catch (e) {
